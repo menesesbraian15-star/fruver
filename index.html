@@ -1,1 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POS Frutería</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
 
+<div class="container">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <h2>🍏 POS</h2>
+
+    <button>🏠 Inicio</button>
+    <button>🛒 Ventas</button>
+    <button>📦 Stock</button>
+    <button>💰 Caja</button>
+    <button>📊 Reportes</button>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <div class="topbar">
+      <input type="text" id="buscador" placeholder="Buscar producto...">
+    </div>
+
+    <div class="productos" id="productos"></div>
+
+  </main>
+
+  <!-- CARRITO -->
+  <aside class="carrito">
+
+    <h2>🛒 Venta</h2>
+
+    <div id="listaCarrito"></div>
+
+    <div class="total">
+      Total:
+      <span id="total">$0</span>
+    </div>
+
+    <button class="btn-pagar" onclick="pagar()">
+      FINALIZAR VENTA
+    </button>
+
+  </aside>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
