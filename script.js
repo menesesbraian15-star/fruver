@@ -3,215 +3,251 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Frutería Pro - Inventario y Ventas</title>
+    <title>Frutería POS Pro</title>
     <style>
-        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .main-container { display: flex; gap: 20px; max-width: 1000px; width: 100%; }
+        :root {
+            --primary: #28a745;
+            --dark: #333;
+            --light: #f4f4f9;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: var(--light); }
         
-        /* Seccion Productos */
-        #productos { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; flex: 2; }
-        .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
-        .emoji { font-size: 3rem; }
-        .stock { font-size: 0.8rem; color: #666; margin-bottom: 10px; }
-        .controles { margin-bottom: 10px; }
-        input[type="number"] { width: 60px; padding: 5px; }
-        select { padding: 5px; }
-        button { cursor: pointer; padding: 8px 15px; border: none; border-radius: 5px; background: #28a745; color: white; font-weight: bold; }
-        button:hover { background: #218838; }
+        /* Navegación */
+        nav { background: var(--dark); color: white; padding: 1rem; display: flex; justify-content: center; gap: 10px; sticky: top; }
+        nav button { background: #444; border: none; color: white; padding: 10px 15px; cursor: pointer; border-radius: 5px; transition: 0.3s; }
+        nav button:hover { background: var(--primary); }
+        nav button.active { background: var(--primary); font-weight: bold; }
 
-        /* Lateral: Carrito e Historial */
-        .sidebar { flex: 1; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .carrito-lista { list-style: none; padding: 0; border-bottom: 2px solid #eee; }
-        .item-carrito { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem; }
-        
-        /* Historial */
-        .historial-section { width: 100%; max-width: 1000px; margin-top: 30px; background: white; padding: 20px; border-radius: 10px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-        th { background-color: #f8f9fa; }
-        .total-caja { background: #333; color: white; padding: 10px; border-radius: 5px; display: inline-block; margin-top: 10px; }
+        .container { padding: 20px; max-width: 1000px; margin: auto; }
+        .view { display: none; } /* Oculto por defecto */
+        .view.active { display: block; } /* Solo se muestra la activa */
+
+        /* Grid de Ventas */
+        .ventas-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        .grid-productos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; }
+        .card { background: white; padding: 15px; border-radius: 8px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .card .emoji { font-size: 2.5rem; }
+
+        /* Tablas */
+        table { width: 100%; border-collapse: collapse; background: white; margin-top: 10px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background: #eee; }
+
+        .btn-pagar { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; font-size: 1.1rem; cursor: pointer; border-radius: 5px; }
+        .badge-stock { font-size: 0.8rem; color: #666; display: block; margin-bottom: 5px; }
     </style>
 </head>
 <body>
 
-    <h1>🍎 Mi Frutería</h1>
+<nav>
+    <button onclick="irA('inicio')" id="btn-inicio">🏠 Inicio</button>
+    <button onclick="irA('ventas')" id="btn-ventas">🛒 Ventas</button>
+    <button onclick="irA('stock')" id="btn-stock">📦 Stock</button>
+    <button onclick="irA('caja')" id="btn-caja">💰 Caja</button>
+</nav>
 
-    <div class="main-container">
-        <div id="productos"></div>
-
-        <div class="sidebar">
-            <h3>🛒 Carrito</h3>
-            <ul id="listaCarrito" class="carrito-lista"></ul>
-            <p><strong>Total: $<span id="total">0</span></strong></p>
-            <button onclick="pagar()" style="width: 100%; background: #007bff;">Finalizar Venta</button>
+<div class="container">
+    
+    <div id="view-inicio" class="view active">
+        <h1>🍏 Bienvenido al POS de Frutería</h1>
+        <p>Seleccione una opción en el menú superior para comenzar.</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="card"><h3>Ventas de hoy</h3><h2 id="resumen-ventas">$0</h2></div>
+            <div class="card"><h3>Items en Carrito</h3><h2 id="resumen-carrito">0</h2></div>
         </div>
     </div>
 
-    <div class="historial-section">
-        <h3>📋 Historial de Ventas y Caja</h3>
+    <div id="view-ventas" class="view">
+        <div class="ventas-layout">
+            <div id="lista-productos" class="grid-productos"></div>
+            <div class="sidebar card">
+                <h3>🛒 Carrito</h3>
+                <div id="carrito-items"></div>
+                <hr>
+                <h4>Total: $<span id="total-carrito">0</span></h4>
+                <button class="btn-pagar" onclick="finalizarVenta()">Finalizar Venta</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="view-stock" class="view">
+        <h2>📦 Gestión de Inventario</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Precio/Kg</th>
+                    <th>Stock Actual</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-stock"></tbody>
+        </table>
+    </div>
+
+    <div id="view-caja" class="view">
+        <h2>💰 Historial de Caja</h2>
         <table>
             <thead>
                 <tr>
                     <th>Hora</th>
-                    <th>Detalle de Productos</th>
-                    <th>Total Venta</th>
+                    <th>Detalle</th>
+                    <th>Total</th>
                 </tr>
             </thead>
-            <tbody id="cuerpoHistorial"></tbody>
+            <tbody id="tabla-historial"></tbody>
         </table>
-        <div class="total-caja">Ventas Totales del Día: $<span id="totalCaja">0</span></div>
+        <h3 style="text-align: right;">Total Recaudado: $<span id="gran-total-caja">0</span></h3>
     </div>
 
-    <script>
-        // 1. Base de Datos de Productos (Inventario Inicial)
-        const productos = [
-            { nombre: "Banano", precio: 2500, emoji: "🍌", stock: 50.0 },
-            { nombre: "Manzana", precio: 3000, emoji: "🍎", stock: 30.0 },
-            { nombre: "Papa", precio: 1800, emoji: "🥔", stock: 100.0 },
-            { nombre: "Tomate", precio: 2200, emoji: "🍅", stock: 40.0 },
-            { nombre: "Zanahoria", precio: 1500, emoji: "🥕", stock: 60.0 },
-            { nombre: "Uvas", precio: 5000, emoji: "🍇", stock: 20.0 }
-        ];
+</div>
 
-        let carrito = [];
-        let historial = [];
-        let totalCarrito = 0;
+<script>
+    // --- DATOS ---
+    let productos = [
+        { nombre: "Banano", precio: 2500, emoji: "🍌", stock: 50 },
+        { nombre: "Manzana", precio: 3000, emoji: "🍎", stock: 30 },
+        { nombre: "Papa", precio: 1800, emoji: "🥔", stock: 100 },
+        { nombre: "Tomate", precio: 2200, emoji: "🍅", stock: 40 }
+    ];
 
-        const contenedor = document.getElementById("productos");
-        const listaCarrito = document.getElementById("listaCarrito");
-        const totalHTML = document.getElementById("total");
-        const cuerpoHistorial = document.getElementById("cuerpoHistorial");
-        const totalCajaHTML = document.getElementById("totalCaja");
+    let carrito = [];
+    let historial = [];
+    let totalVendidoHoy = 0;
 
-        // 2. Mostrar Productos con Stock actualizado
-        function mostrarProductos() {
-            contenedor.innerHTML = "";
-            productos.forEach((p, index) => {
-                contenedor.innerHTML += `
-                    <div class="card">
-                        <div class="emoji">${p.emoji}</div>
-                        <h3>${p.nombre}</h3>
-                        <div class="stock">Stock: ${p.stock.toFixed(2)} Kg</div>
-                        <div class="precio"><strong>$${p.precio} / Kg</strong></div>
-                        <div class="controles">
-                            <input type="number" id="cant-${index}" min="0.1" step="0.1" placeholder="Cant.">
-                            <select id="unit-${index}">
-                                <option value="kg">Kg</option>
-                                <option value="lb">Lb</option>
-                            </select>
-                        </div>
-                        <button onclick="agregar(${index})">Agregar</button>
-                    </div>
-                `;
-            });
-        }
+    // --- NAVEGACIÓN ---
+    function irA(vista) {
+        // Ocultar todas las vistas
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+        
+        // Mostrar la seleccionada
+        document.getElementById(`view-${vista}`).classList.add('active');
+        document.getElementById(`btn-${vista}`).classList.add('active');
 
-        // 3. Lógica para Agregar al Carrito (Gestionando Unidades)
-        function agregar(index) {
-            const input = document.getElementById(`cant-${index}`);
-            const unidad = document.getElementById(`unit-${index}`).value;
-            const cantidad = parseFloat(input.value);
-            const producto = productos[index];
+        // Refrescar datos según la vista
+        if(vista === 'ventas') renderVentas();
+        if(vista === 'stock') renderStock();
+        if(vista === 'caja') renderCaja();
+        if(vista === 'inicio') actualizarResumen();
+    }
 
-            if (isNaN(cantidad) || cantidad <= 0) {
-                alert("Por favor, ingresa una cantidad válida.");
-                return;
-            }
+    // --- LÓGICA DE VENTAS ---
+    function renderVentas() {
+        const div = document.getElementById('lista-productos');
+        div.innerHTML = "";
+        productos.forEach((p, i) => {
+            div.innerHTML += `
+                <div class="card">
+                    <span class="emoji">${p.emoji}</span>
+                    <h4>${p.nombre}</h4>
+                    <span class="badge-stock">Stock: ${p.stock.toFixed(1)}kg</span>
+                    <input type="number" id="q-${i}" step="0.1" placeholder="Cant" style="width:50px">
+                    <select id="u-${i}"><option value="kg">Kg</option><option value="lb">Lb</option></select>
+                    <button onclick="agregarAlCarrito(${i})" style="margin-top:5px">+</button>
+                </div>
+            `;
+        });
+    }
 
-            // Conversión: 1 Libra = 0.5 Kilo (Lógica estándar de frutería)
-            let pesoEnKilos = (unidad === "lb") ? cantidad * 0.5 : cantidad;
+    function agregarAlCarrito(index) {
+        const cant = parseFloat(document.getElementById(`q-${index}`).value);
+        const unidad = document.getElementById(`u-${index}`).value;
+        const p = productos[index];
 
-            if (pesoEnKilos > producto.stock) {
-                alert("No hay suficiente stock de " + producto.nombre);
-                return;
-            }
+        if(!cant || cant <= 0) return alert("Cantidad inválida");
+        
+        let pesoKg = unidad === 'lb' ? cant * 0.5 : cant;
+        if(pesoKg > p.stock) return alert("No hay suficiente stock");
 
-            // Calcular precio proporcional al peso en Kilos
-            let subtotal = pesoEnKilos * producto.precio;
+        carrito.push({
+            nombre: p.nombre,
+            subtotal: pesoKg * p.precio,
+            pesoKg: pesoKg,
+            detalle: `${cant}${unidad}`,
+            indexOriginal: index
+        });
 
-            carrito.push({
-                nombre: producto.nombre,
-                cantidadOriginal: cantidad,
-                unidadUsada: unidad,
-                pesoKilos: pesoEnKilos,
-                subtotal: subtotal,
-                indexOriginal: index
-            });
+        actualizarCarritoUI();
+    }
 
-            totalCarrito += subtotal;
-            input.value = ""; // Limpiar campo
-            renderCarrito();
-        }
+    function actualizarCarritoUI() {
+        const div = document.getElementById('carrito-items');
+        const totalTxt = document.getElementById('total-carrito');
+        div.innerHTML = "";
+        let suma = 0;
+        carrito.forEach(item => {
+            div.innerHTML += `<div class="item-carrito"><span>${item.nombre} (${item.detalle})</span> <span>$${item.subtotal.toFixed(0)}</span></div>`;
+            suma += item.subtotal;
+        });
+        totalTxt.innerText = suma.toLocaleString();
+        document.getElementById('resumen-carrito').innerText = carrito.length;
+    }
 
-        function renderCarrito() {
-            listaCarrito.innerHTML = "";
-            carrito.forEach(item => {
-                listaCarrito.innerHTML += `
-                    <li class="item-carrito">
-                        <span>${item.nombre} (${item.cantidadOriginal} ${item.unidadUsada})</span>
-                        <span>$${item.subtotal.toFixed(0)}</span>
-                    </li>
-                `;
-            });
-            totalHTML.textContent = totalCarrito.toLocaleString();
-        }
+    function finalizarVenta() {
+        if(carrito.length === 0) return;
+        
+        let totalVenta = 0;
+        let detalleTexto = [];
 
-        // 4. Pagar: Descontar del stock y registrar en historial
-        function pagar() {
-            if (carrito.length === 0) {
-                alert("El carrito está vacío");
-                return;
-            }
+        carrito.forEach(item => {
+            productos[item.indexOriginal].stock -= item.pesoKg;
+            totalVenta += item.subtotal;
+            detalleTexto.push(`${item.detalle} ${item.nombre}`);
+        });
 
-            const ahora = new Date();
-            const hora = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            
-            let resumenVenta = [];
+        historial.push({
+            hora: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+            detalle: detalleTexto.join(", "),
+            total: totalVenta
+        });
 
-            // Descontar stock real
-            carrito.forEach(item => {
-                productos[item.indexOriginal].stock -= item.pesoKilos;
-                resumenVenta.push(`${item.cantidadOriginal}${item.unidadUsada} ${item.nombre}`);
-            });
+        totalVendidoHoy += totalVenta;
+        carrito = [];
+        actualizarCarritoUI();
+        renderVentas();
+        alert("Venta guardada");
+    }
 
-            // Agregar al historial
-            historial.push({
-                hora: hora,
-                detalle: resumenVenta.join(", "),
-                total: totalCarrito
-            });
+    // --- LÓGICA DE STOCK ---
+    function renderStock() {
+        const tabla = document.getElementById('tabla-stock');
+        tabla.innerHTML = "";
+        productos.forEach((p, i) => {
+            tabla.innerHTML += `
+                <tr>
+                    <td>${p.emoji} ${p.nombre}</td>
+                    <td>$${p.precio}</td>
+                    <td>${p.stock.toFixed(2)} Kg</td>
+                    <td><button onclick="sumarStock(${i})">Añadir 10kg</button></td>
+                </tr>
+            `;
+        });
+    }
 
-            alert("Venta procesada con éxito.");
+    function sumarStock(i) {
+        productos[i].stock += 10;
+        renderStock();
+    }
 
-            // Limpiar datos de la venta actual
-            carrito = [];
-            totalCarrito = 0;
+    // --- LÓGICA DE CAJA ---
+    function renderCaja() {
+        const tabla = document.getElementById('tabla-historial');
+        const totalCaja = document.getElementById('gran-total-caja');
+        tabla.innerHTML = "";
+        historial.forEach(v => {
+            tabla.innerHTML += `<tr><td>${v.hora}</td><td>${v.detalle}</td><td>$${v.total.toLocaleString()}</td></tr>`;
+        });
+        totalCaja.innerText = totalVendidoHoy.toLocaleString();
+    }
 
-            // Actualizar Interfaz
-            renderCarrito();
-            mostrarProductos();
-            actualizarHistorial();
-        }
+    function actualizarResumen() {
+        document.getElementById('resumen-ventas').innerText = "$" + totalVendidoHoy.toLocaleString();
+    }
 
-        function actualizarHistorial() {
-            cuerpoHistorial.innerHTML = "";
-            let ingresosTotales = 0;
+    // Iniciar
+    irA('inicio');
+</script>
 
-            historial.forEach(v => {
-                ingresosTotales += v.total;
-                cuerpoHistorial.innerHTML += `
-                    <tr>
-                        <td>${v.hora}</td>
-                        <td>${v.detalle}</td>
-                        <td>$${v.total.toLocaleString()}</td>
-                    </tr>
-                `;
-            });
-            totalCajaHTML.textContent = ingresosTotales.toLocaleString();
-        }
-
-        // Iniciar App
-        mostrarProductos();
-    </script>
 </body>
 </html>
